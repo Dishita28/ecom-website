@@ -1,7 +1,10 @@
 <?php
 session_start();
+
+// Database Connections
 $conn_users = new mysqli("localhost", "root", "", "users");
 $conn_catalog = new mysqli("localhost", "root", "", "catalog");
+$conn_orders = new mysqli("localhost", "root", "", "order_form");
 
 // Handle Registration
 if (isset($_POST['register'])) {
@@ -36,23 +39,15 @@ if (isset($_POST['login'])) {
     }
 }
 
-// Handle Logout
-if (isset($_POST['logout'])) {
-    session_destroy();
-    header("Location: ".$_SERVER['PHP_SELF']);
-    exit();
-}
-
 // Handle Cart
 if (isset($_POST['add'])) $_SESSION['cart'][] = ['n' => $_POST['n'], 'p' => $_POST['p']];
 if (isset($_POST['clear'])) unset($_SESSION['cart']);
 if (isset($_POST['remove'])) unset($_SESSION['cart'][$_POST['id']]);
-
-// Place Order
 if (isset($_POST['placeorder'])) {
     if (!empty($_SESSION['cart']) && isset($_SESSION['user'])) {
+        // Insert into the orders table
         foreach ($_SESSION['cart'] as $item) {
-            $stmt = $conn_catalog->prepare("INSERT INTO orders (username, product_name, price) VALUES (?, ?, ?)");
+            $stmt = $conn_orders->prepare("INSERT INTO orders (username, product_name, price) VALUES (?, ?, ?)");
             $stmt->bind_param("ssi", $_SESSION['user'], $item['n'], $item['p']);
             $stmt->execute();
         }
@@ -64,14 +59,15 @@ if (isset($_POST['placeorder'])) {
     }
 }
 
-// Search Products
+// Handle Search
 if (isset($_GET['q']) && $_GET['q'] !== '') {
     $q = $conn_catalog->real_escape_string($_GET['q']);
-    $res = $conn_catalog->query("SELECT name, description, price, image FROM catalog WHERE name LIKE '%$q%' OR description LIKE '%$q%'");
+    $res = $conn_catalog->query("SELECT name, description, price, image FROM products WHERE name LIKE '%$q%' OR description LIKE '%$q%'");
 } else {
-    $res = $conn_catalog->query("SELECT name, description, price, image FROM catalog");
+    $res = $conn_catalog->query("SELECT name, description, price, image FROM products");
 }
 ?>
+
 <!DOCTYPE html>
 <html>
 <head><title>Shop App</title></head>
@@ -105,9 +101,7 @@ if (isset($_GET['q']) && $_GET['q'] !== '') {
     <button name="logout" value="1">Logout</button>
 </form>
 
-<hr>
-
-<!-- Cart Section -->
+<!-- Cart Display -->
 <h3>Your Cart</h3>
 <?php if (!empty($_SESSION['cart'])): 
     $t = 0;
@@ -126,10 +120,9 @@ if (isset($_GET['q']) && $_GET['q'] !== '') {
 <?php else: ?>
     <p>Cart is empty.</p>
 <?php endif; ?>
-
 <hr>
 
-<!-- Catalog Section -->
+<!-- Catalog with Search -->
 <h2>Catalogue</h2>
 <form method="get">
     <input type="text" name="q" placeholder="Search products..." value="<?= isset($_GET['q']) ? htmlspecialchars($_GET['q']) : '' ?>">
@@ -156,34 +149,16 @@ if ($res && $res->num_rows > 0) {
 }
 ?>
 
-<hr>
-
-<!-- Orders Section -->
-<h2>Your Orders</h2>
+<?php endif; ?>
 
 <?php
-$stmt = $conn_catalog->prepare("SELECT product_name, price, order_date FROM orders WHERE username = ?");
-$stmt->bind_param("s", $_SESSION['user']);
-$stmt->execute();
-$stmt->bind_result($product_name, $price, $order_date);
-
-$has_orders = false;
-while ($stmt->fetch()):
-    $has_orders = true;
-?>
-    <div style="border:1px solid #aaa; padding:10px; margin:10px;">
-        <b>Product:</b> <?= htmlspecialchars($product_name) ?><br>
-        <b>Price:</b> ₹<?= htmlspecialchars($price) ?><br>
-        <b>Ordered On:</b> <?= htmlspecialchars($order_date) ?><br>
-    </div>
-<?php endwhile;
-
-if (!$has_orders) {
-    echo "<p>No orders placed yet.</p>";
+// Handle Logout
+if (isset($_POST['logout'])) {
+    session_destroy();
+    header("Location: ".$_SERVER['PHP_SELF']);
+    exit();
 }
 ?>
-
-<?php endif; ?>
 
 </body>
 </html>
