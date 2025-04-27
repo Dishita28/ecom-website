@@ -1,0 +1,33 @@
+--login
+CREATE DATABASE IF NOT EXISTS users;
+USE users;
+
+CREATE TABLE IF NOT EXISTS Login (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL
+);
+
+--catalog
+CREATE DATABASE IF NOT EXISTS catalog;
+USE catalog;
+
+CREATE TABLE IF NOT EXISTS products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    price INT NOT NULL,
+    image VARCHAR(255) NOT NULL
+);
+
+--order_form
+CREATE DATABASE IF NOT EXISTS order_form;
+USE order_form;
+
+CREATE TABLE IF NOT EXISTS orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    product_name VARCHAR(255) NOT NULL,
+    price INT NOT NULL,
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
